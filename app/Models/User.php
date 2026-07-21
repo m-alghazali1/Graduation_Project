@@ -12,33 +12,28 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
+    // الحقول المسموح إدخالها
     protected $fillable = [
-        'name',
+        'person_id',
         'email',
         'password',
+        'role',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
+    // إخفاء الباسورد والتوكن عند إرجاع البيانات عشان الحماية (Security)
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
+    // تشفير تلقائي أو تحويل أنواع البيانات
     protected $casts = [
-        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
     ];
+
+    // علاقة المستخدم بالبيانات الشخصية (كل مستخدم له شخص واحد)
+    public function person()
+    {
+        return $this->belongsTo(Person::class);
+    }
 }

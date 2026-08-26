@@ -16,7 +16,7 @@ return new class extends Migration
 
             $table->dateTime('appointment_date');
 
-            $table->decimal('blood_pressure', 5, 2)->nullable();
+            $table->string('blood_pressure')->nullable();
             $table->decimal('weight', 5, 2)->nullable();
             $table->decimal('temperature', 4, 1)->nullable();
 

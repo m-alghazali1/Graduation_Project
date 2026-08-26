@@ -4,12 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الأحياء - إدارة النقاط الطبية</title>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>الأطباء - إدارة النقاط الطبية</title>
     <link rel="stylesheet" href="{{ asset('assets/styles.css') }}">
 </head>
 
-<body data-page="districts">
+<body data-page="doctors">
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
@@ -50,8 +49,8 @@
                 <a class="nav-item" data-page="governorates" href="/dashboard/governorates"><i
                         class="fas fa-map-marker-alt"></i> المحافظات</a>
                 <a class="nav-item" data-page="cities" href="/dashboard/cities"><i class="fas fa-city"></i> المدن</a>
-                <a class="nav-item active" data-page="districts" href="/dashboard/neighborhoods"><i
-                        class="fas fa-map"></i> الأحياء</a>
+                <a class="nav-item" data-page="districts" href="/dashboard/neighborhoods"><i class="fas fa-map"></i>
+                    الأحياء</a>
                 <a class="nav-item" data-page="medicines" href="/dashboard/medicine-types"><i class="fas fa-pills"></i>
                     أنواع الأدوية</a>
             </div>
@@ -91,9 +90,9 @@
         <div class="topbar">
             <button class="mobile-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
             <div>
-                <div class="breadcrumb"><a href="/dashboard">الرئيسية</a><span>/</span><span
-                        class="current">الأحياء</span></div>
-                <h1>الأحياء</h1>
+                <div class="breadcrumb"><a href="../dashboard.html">الرئيسية</a><span>/</span><span
+                        class="current">الأطباء</span></div>
+                <h1>الأطباء</h1>
             </div>
             <div class="topbar-left"><span class="date" id="currentDate"></span></div>
         </div>
@@ -101,17 +100,17 @@
         <div class="table-card">
             <div class="table-toolbar">
                 <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchInput"
-                        placeholder="بحث عن حي..." oninput="renderTable()"></div>
+                        placeholder="بحث عن طبيب..." oninput="renderTable()"></div>
                 <button class="btn btn-primary btn-sm" onclick="openAddModal()"><i class="fas fa-plus"></i> إضافة
-                    حي</button>
+                    طبيب</button>
             </div>
             <div class="table-container">
                 <table>
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>الاسم</th>
-                            <th>المدينة</th>
+                            <th>اسم الطبيب</th>
+                            <th>التخصص</th>
                             <th>الحالة</th>
                             <th>الإجراءات</th>
                         </tr>
@@ -122,46 +121,46 @@
         </div>
     </main>
 
-    <div class="modal-overlay" id="formModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h3 id="modalTitle">إضافة حي</h3>
-                <button class="modal-close" onclick="closeModal('formModal')"><i class="fas fa-times"></i></button>
+    <!-- المودال الخاص بالإضافة والتعديل -->
+    <div class="modal-overlay" id="formModal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center;">
+        <div class="modal" style="width:500px; background:#fff; padding:24px; border-radius:8px;">
+            <div class="modal-header"
+                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 id="modalTitle">إضافة طبيب</h3>
+                <button class="modal-close" onclick="closeModal('formModal')"
+                    style="background:none; border:none; font-size:18px; cursor:pointer;"><i
+                        class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label>المدينة</label>
-                    <select id="citySelect"
-                        style="width:100%;padding:12px 16px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-family:'Cairo',sans-serif;font-size:14px;background:var(--gray-50);outline:none;"
-                        onchange="updateGovernorateDisplay()"></select>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label>اسم الطبيب <span style="color:red;">*</span></label>
+                    <input type="text" id="nameInput" placeholder="أدخل اسم الطبيب"
+                        style="width:100%;padding:10px;border:1px solid #ccc;border-radius:4px;" required>
                 </div>
-                <div class="form-group" id="govDisplayGroup" style="display:none;">
-                    <label>المحافظة</label>
-                    <input type="text" id="govDisplay"
-                        style="width:100%;padding:12px 16px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-family:'Cairo',sans-serif;font-size:14px;background:var(--gray-100);outline:none;"
-                        readonly>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label>التخصص</label>
+                    <input type="text" id="specialtyInput" placeholder="مثال: طب عام، أطفال، نساء وتوليد"
+                        style="width:100%;padding:10px;border:1px solid #ccc;border-radius:4px;">
                 </div>
-                <div class="form-group">
-                    <label>اسم الحي</label>
-                    <input type="text" id="nameInput" placeholder="أدخل اسم الحي" required>
-                </div>
-                <div class="form-group">
+                <div class="form-group" style="margin-bottom:12px;">
                     <label>الحالة</label>
-                    <select id="statusInput"
-                        style="width:100%;padding:12px 16px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-family:'Cairo',sans-serif;font-size:14px;background:var(--gray-50);outline:none;">
+                    <select id="statusInput" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:4px;">
                         <option value="active">نشط</option>
                         <option value="inactive">غير نشط</option>
                     </select>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('formModal')">إلغاء</button>
-                <button class="btn btn-primary" onclick="saveItem()"><i class="fas fa-save"></i> حفظ</button>
+            <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+                <button class="btn btn-secondary" onclick="closeModal('formModal')"
+                    style="padding:8px 16px; cursor:pointer;">إلغاء</button>
+                <button class="btn btn-primary" onclick="saveItem()"
+                    style="padding:8px 16px; background:blue; color:#fff; border:none; border-radius:4px; cursor:pointer;">حفظ
+                    في السيرفر</button>
             </div>
         </div>
     </div>
 
-    <script src="{{ asset('js/main.js') }}"></script>
     <script>
         // التحقق من وجود التوكن، وإذا لم يكن موجوداً يتم طرده لصفحة تسجيل الدخول فوراً
         if (!localStorage.getItem('auth_token')) {
@@ -169,118 +168,61 @@
         }
 
         const API_BASE_URL = 'http://127.0.0.1:8000/api';
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        let citiesData = [];
-        let neighborhoodsData = [];
+        let doctorsData = [];
+        let editId = null;
 
-        // جلب المدن (مع محافظاتها)
-        async function loadCities() {
-            try {
-                const res = await fetch(`${API_BASE_URL}/cities`);
-                citiesData = await res.json();
-                const sel = document.getElementById('citySelect');
-                sel.innerHTML = '<option value="" disabled selected>اختر المدينة...</option>' +
-                    citiesData.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-            } catch (e) {
-                console.error('خطأ في جلب المدن', e);
-            }
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
         }
 
-        // إظهار المحافظة تلقائياً عند اختيار المدينة
-        function updateGovernorateDisplay() {
-            const cityId = document.getElementById('citySelect').value;
-            const display = document.getElementById('govDisplayGroup');
-            const input = document.getElementById('govDisplay');
-
-            const city = citiesData.find(c => c.id == cityId);
-            if (city && city.governorate) {
-                input.value = city.governorate.name;
-                display.style.display = 'block';
-            } else {
-                display.style.display = 'none';
-            }
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
         }
 
-        // جلب وعرض الأحياء
-        async function fetchNeighborhoods() {
+        // جلب الأطباء من السيرفر
+        async function fetchDoctors() {
             try {
-                const res = await fetch(`${API_BASE_URL}/neighborhoods`);
-                neighborhoodsData = await res.json();
-                renderTable();
+                const res = await fetch(`${API_BASE_URL}/doctors`);
+                if (res.ok) {
+                    doctorsData = await res.json();
+                    renderTable();
+                }
             } catch (e) {
-                console.error('خطأ في جلب الأحياء', e);
+                console.error('خطأ في جلب الأطباء:', e);
             }
         }
 
         function renderTable() {
             const q = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
-            const items = neighborhoodsData.filter(i => (i.name || '').toLowerCase().includes(q));
+            const items = doctorsData.filter(i => (i.name || '').toLowerCase().includes(q));
             const tbody = document.getElementById('tableBody');
-
-            if (!items || items.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><p>لا توجد أحياء</p></div></td></tr>';
+            if (!items.length) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">لا يوجد أطباء مضافين بعد</td></tr>';
                 return;
             }
-
             tbody.innerHTML = items.map((item, idx) => `
-            <tr>
-              <td>${idx + 1}</td>
-              <td><strong>${item.name}</strong></td>
-              <td>${item.city ? item.city.name : '---'}</td>
-              <td><span class="status-badge active">نشط</span></td>
-              <td>
-                <div class="actions">
-                  <button class="edit-btn"><i class="fas fa-pen"></i></button>
-                  <button class="delete-btn"><i class="fas fa-trash"></i></button>
-                </div>
-              </td>
-            </tr>
-        `).join('');
-        }
-
-        // حفظ الحي
-        async function saveItem() {
-            const name = document.getElementById('nameInput').value.trim();
-            const cityId = document.getElementById('citySelect').value;
-            const status = document.getElementById('statusInput').value;
-
-            if (!name || !cityId) {
-                alert('يرجى اختيار المدينة وإدخال اسم الحي');
-                return;
-            }
-
-            try {
-                const res = await fetch(`${API_BASE_URL}/neighborhoods`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken
-                    },
-                    body: JSON.stringify({ name: name, city_id: cityId, status: status })
-                });
-
-                if (res.ok) {
-                    alert('تم إضافة الحي بنجاح!');
-                    closeModal('formModal');
-                    fetchNeighborhoods();
-                } else {
-                    const err = await res.json();
-                    alert('خطأ: ' + JSON.stringify(err.errors || err.message));
-                }
-            } catch (e) {
-                console.error(e);
-                alert('حدث خطأ في الاتصال بالسيرفر');
-            }
+        <tr>
+          <td style="color:var(--gray-400);font-weight:600;">${idx + 1}</td>
+          <td><strong>${item.name}</strong></td>
+          <td>${item.specialty || '---'}</td>
+          <td><span class="status-badge ${item.status}">${item.status === 'active' ? 'نشط' : 'غير نشط'}</span></td>
+          <td>
+            <div class="actions">
+              <button class="delete-btn" onclick="deleteItem('${item.id}')" title="حذف" style="background:red;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;"><i class="fas fa-trash"></i> حذف</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
         }
 
         function openAddModal() {
+            editId = null;
+            document.getElementById('modalTitle').textContent = 'إضافة طبيب جديد';
             document.getElementById('nameInput').value = '';
-            document.getElementById('govDisplayGroup').style.display = 'none';
-            loadCities();
+            document.getElementById('specialtyInput').value = '';
+            document.getElementById('statusInput').value = 'active';
             openModal('formModal');
         }
-
         function handleLogout() {
             if (confirm('هل أنت متأكد من رغبتك في تسجيل الخروج؟')) {
                 // حذف بيانات الجلسة والتوكن
@@ -291,11 +233,59 @@
                 window.location.href = '/login'; // أو مسار صفحة الدخول لديك
             }
         }
+        // حفظ الطبيب عبر الـ API
+        async function saveItem() {
+            const name = document.getElementById('nameInput').value.trim();
+            if (!name) { alert('يرجى إدخال اسم الطبيب'); return; }
 
-        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+            const data = {
+                name,
+                specialty: document.getElementById('specialtyInput').value.trim(),
+                status: document.getElementById('statusInput').value
+            };
 
-        document.addEventListener('DOMContentLoaded', fetchNeighborhoods);
+            try {
+                const url = editId ? `${API_BASE_URL}/doctors/${editId}` : `${API_BASE_URL}/doctors`;
+                const method = editId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    alert('تم حفظ بيانات الطبيب بنجاح في قاعدة البيانات!');
+                    closeModal('formModal');
+                    fetchDoctors();
+                } else {
+                    const err = await response.json();
+                    alert('فشل الحفظ: ' + JSON.stringify(err.errors || err.message));
+                }
+            } catch (e) {
+                console.error(e);
+                alert('حدث خطأ في الاتصال بالسيرفر');
+            }
+        }
+
+        async function deleteItem(id) {
+            if (!confirm('هل أنت متأكد من حذف هذا الطبيب؟')) return;
+            try {
+                const res = await fetch(`${API_BASE_URL}/doctors/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    fetchDoctors();
+                } else {
+                    alert('فشل حذف الطبيب');
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchDoctors);
     </script>
 </body>
 

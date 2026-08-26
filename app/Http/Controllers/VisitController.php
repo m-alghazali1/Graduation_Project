@@ -20,7 +20,7 @@ class VisitController extends Controller
     {
         $validatedData = $request->validate([
             'appointment_date' => 'required|date',
-            'blood_pressure'   => 'nullable|numeric',
+            'blood_pressure' => 'nullable|string|max:20',
             'weight'           => 'nullable|numeric|min:0',
             'temperature'      => 'nullable|numeric',
             'doctor_notes'     => 'nullable|string',

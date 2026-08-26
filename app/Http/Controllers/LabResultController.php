@@ -23,7 +23,7 @@ class LabResultController extends Controller
             'lab_notes'    => 'nullable|string',
             'status'       => ['nullable', Rule::in(['pending', 'completed', 'reviewed'])],
             'visit_id'     => 'required|exists:visits,id',
-            'test_type_id' => 'required|exists:test_types,id',
+            'test_type_id' => 'required|exists:analyses,id',
         ]);
 
         // القيمة الافتراضية للحالة لو ما تم إرسالها

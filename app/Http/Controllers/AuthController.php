@@ -29,24 +29,56 @@ class AuthController extends Controller
         // إنشاء توكن مصادقة خاص بـ Laravel Sanctum
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        // تحديد مسار التوجيه الصحيح بناءً على دور المستخدم (Role)
-        $redirectUrl = '/dashboard/analyses'; // القيمة الافتراضية للمدير
+        // تحديد مسار التوجيه السليم بحسب دور المستخدم (Role)
+        $redirectUrl = '/dashboard';
 
         if ($user->role === 'doctor') {
             $redirectUrl = '/dashboard/visits';
-        } elseif ($user->role === 'lab') {
+        } elseif ($user->role === 'lab_employee') {
             $redirectUrl = '/dashboard/lab-results';
         } elseif ($user->role === 'pharmacist') {
-            $redirectUrl = '/dashboard/medicine-types';
+            $redirectUrl = '/dashboard/pharmacy';
         }
 
-        // إرجاع استجابة نجاح مع رابط التوجيه السليم
+        // إرجاع استجابة نجاح مع بيانات الجلسة
         return response()->json([
             'message'      => 'تم تسجيل الدخول بنجاح',
             'token'        => $token,
             'role'         => $user->role,
             'redirect_url' => $redirectUrl,
-            'user'         => $user
+            'user'         => [
+                'id' => $user->id,
+                'email' => $user->email,
+                'role' => $user->role,
+                'name' => $user->person ? $user->person->full_name : $user->email,
+                'person' => $user->person
+            ]
         ], 200);
+    }
+
+    // دالة جلب بيانات المستخدم الحالي
+    public function me(Request $request)
+    {
+        $user = $request->user()->load('person');
+        return response()->json([
+            'id' => $user->id,
+            'email' => $user->email,
+            'role' => $user->role,
+            'name' => $user->person ? $user->person->full_name : $user->email,
+            'person' => $user->person
+        ]);
+    }
+
+    // دالة تسجيل الخروج وإبطال التوكن في السيرفر
+    public function logout(Request $request)
+    {
+        $user = $request->user();
+        if ($user) {
+            $user->currentAccessToken()->delete();
+        }
+
+        return response()->json([
+            'message' => 'تم تسجيل الخروج بنجاح وإلغاء صلاحية الجلسة.'
+        ]);
     }
 }

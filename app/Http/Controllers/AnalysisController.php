@@ -2,28 +2,28 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Analysis;
+use App\Models\TestType;
 use Illuminate\Http\Request;
 
 class AnalysisController extends Controller
 {
     public function index()
     {
-        $analyses = Analysis::all();
-        return response()->json($analyses);
+        return response()->json(TestType::latest()->get());
     }
 
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'status' => 'required|string|in:active,inactive',
-        ]);
+        return app(TestTypeController::class)->store($request);
+    }
 
-        $analysis = Analysis::create($validatedData);
+    public function update(Request $request, $id)
+    {
+        return app(TestTypeController::class)->update($request, $id);
+    }
 
-        return response()->json($analysis, 201);
+    public function destroy($id)
+    {
+        return app(TestTypeController::class)->destroy($id);
     }
 }

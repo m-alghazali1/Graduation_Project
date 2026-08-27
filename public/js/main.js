@@ -1,126 +1,241 @@
-// Shared JS for Medical Point Management
-document.addEventListener('DOMContentLoaded', () => {
+/**
+ * Medical Point Management System - Unified Core JavaScript
+ */
+
+const API_BASE_URL = '/api';
+
+// نصوص مسميات الأدوار باللغة العربية
+const ROLE_NAMES = {
+    admin: 'مدير النظام',
+    doctor: 'طبيب',
+    lab_employee: 'فني مختبر',
+    pharmacist: 'صيدلي'
+};
+
+// 1. استدعاءات الـ API المركزية مع التوكن الموحد
+async function apiCall(endpoint, method = 'GET', data = null) {
+    const token = localStorage.getItem('auth_token');
+    
+    const headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    };
+
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const config = {
+        method: method,
+        headers: headers
+    };
+
+    if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+        config.body = JSON.stringify(data);
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`, config);
+
+        if (response.status === 401) {
+            // توكن منتهي الصلاحية أو غير مسجل
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            if (!window.location.pathname.includes('/login')) {
+                window.location.href = '/login';
+            }
+            return { ok: false, status: 401, error: 'يرجى تسجيل الدخول مجدداً' };
+        }
+
+        if (response.status === 403) {
+            const err = await response.json().catch(() => ({}));
+            showToast(err.message || 'عذراً، لا تمتلك الصلاحيات الكافية لهذا الإجراء.', 'error');
+            return { ok: false, status: 403, error: err.message };
+        }
+
+        const resData = await response.json().catch(() => null);
+        return {
+            ok: response.ok,
+            status: response.status,
+            data: resData
+        };
+    } catch (err) {
+        console.error('API Error:', err);
+        showToast('حدث خطأ في الاتصال بالسيرفر', 'error');
+        return { ok: false, error: err.message };
+    }
+}
+
+// 2. حراسة الواجهات بالـ Frontend (URL Guards) وتخصيص الصلاحيات
+function initAuthAndSidebar() {
+    const isLoginPage = window.location.pathname.includes('/login');
     const token = localStorage.getItem('auth_token');
     const userStr = localStorage.getItem('user');
 
-    // 1. إذا لم يكن مسجل دخول أصلاً، طرده لصفحة تسجيل الدخول
+    if (isLoginPage) {
+        // إذا كان مسجل دخول وموجود في صفحة تسجيل الدخول، توجيهه لصفحته
+        if (token && userStr) {
+            try {
+                const user = JSON.parse(userStr);
+                redirectToUserDashboard(user.role);
+            } catch (e) {}
+        }
+        return;
+    }
+
+    // إذا لم يكن مسجل دخول وموجود بصفحة محمية، توجيهه لصفحة الدخول
     if (!token || !userStr) {
         window.location.href = '/login';
         return;
     }
 
-    const user = JSON.parse(userStr);
-    const role = user.role; // admin, doctor, lab, pharmacist
+    let user = null;
+    try {
+        user = JSON.parse(userStr);
+    } catch (e) {
+        localStorage.clear();
+        window.location.href = '/login';
+        return;
+    }
 
-    // 2. حماية الصفحات حسب الدور (مثلاً: منع الطبيب من دخول صفحة التحاليل أو العكس)
+    const role = user.role;
     const currentPath = window.location.pathname;
 
-    if (role === 'doctor' && currentPath.includes('/dashboard/analyses')) {
-        alert('عذراً، لا تمتلك صلاحية الدخول لهذه الصفحة');
-        window.location.href = '/dashboard/visits'; // توجيهه لصفحته المخصصة
+    // حراسة المسارات بناءً على الصلاحيات
+    if (role === 'doctor') {
+        const allowed = ['/dashboard', '/dashboard/visits', '/dashboard/persons'];
+        if (!allowed.some(p => currentPath === p || currentPath === p + '/')) {
+            showToast('عذراً، هذه الصفحة غير مصرحة لك كطبيب', 'error');
+            window.location.href = '/dashboard/visits';
+            return;
+        }
+    } else if (role === 'lab_employee') {
+        const allowed = ['/dashboard', '/dashboard/lab-results', '/dashboard/analyses'];
+        if (!allowed.some(p => currentPath === p || currentPath === p + '/')) {
+            showToast('عذراً، هذه الصفحة غير مصرحة لك كفني مختبر', 'error');
+            window.location.href = '/dashboard/lab-results';
+            return;
+        }
+    } else if (role === 'pharmacist') {
+        const allowed = ['/dashboard', '/dashboard/pharmacy', '/dashboard/medicine-types'];
+        if (!allowed.some(p => currentPath === p || currentPath === p + '/')) {
+            showToast('عذراً، هذه الصفحة غير مصرحة لك كصيدلي', 'error');
+            window.location.href = '/dashboard/pharmacy';
+            return;
+        }
     }
 
-    if (role === 'lab' && currentPath.includes('/dashboard/visits')) {
-        alert('عذراً، لا تمتلك صلاحية الدخول لهذه الصفحة');
-        window.location.href = '/dashboard/lab-results';
+    // تخصيص القائمة الجانبية (Sidebar) وفقاً للدور
+    setupSidebarForRole(user);
+}
+
+// توجيه المستخدم حسب دوره
+function redirectToUserDashboard(role) {
+    if (role === 'doctor') window.location.href = '/dashboard/visits';
+    else if (role === 'lab_employee') window.location.href = '/dashboard/lab-results';
+    else if (role === 'pharmacist') window.location.href = '/dashboard/pharmacy';
+    else window.location.href = '/dashboard';
+}
+
+// ضبط عناصر القائمة الجانبية والشارات
+function setupSidebarForRole(user) {
+    const role = user.role;
+
+    // تحديث بطاقة المستخدم في القائمة الجانبية
+    document.querySelectorAll('.user-name').forEach(el => {
+        el.textContent = user.name || user.email || 'مستخدم النظام';
+    });
+
+    document.querySelectorAll('.user-role').forEach(el => {
+        el.textContent = ROLE_NAMES[role] || role;
+    });
+
+    document.querySelectorAll('.avatar').forEach(el => {
+        const firstLetter = (user.name || user.email || 'م').trim().charAt(0);
+        el.textContent = firstLetter.toUpperCase();
+    });
+
+    // إخفاء الأقسام غير المسموحة
+    if (role === 'doctor') {
+        hideSidebarSection(['المختبر', 'الصيدلية', 'الثوابت', 'المستخدمون', 'الطاقم والمستخدمون']);
+    } else if (role === 'lab_employee') {
+        hideSidebarSection(['الاستقبال', 'الصيدلية', 'الثوابت', 'المستخدمون', 'الطاقم والمستخدمون']);
+    } else if (role === 'pharmacist') {
+        hideSidebarSection(['الاستقبال', 'المختبر', 'الثوابت', 'المستخدمون', 'الطاقم والمستخدمون']);
     }
-});
 
-const API = {
-  governorates: JSON.parse(localStorage.getItem('governorates') || '[]'),
-  cities: JSON.parse(localStorage.getItem('cities') || '[]'),
-  districts: JSON.parse(localStorage.getItem('districts') || '[]'),
-  analysisTypes: JSON.parse(localStorage.getItem('analysisTypes') || '[]'),
-  medicineTypes: JSON.parse(localStorage.getItem('medicineTypes') || '[]'),
+    // تفعيل الرابط الحالي
+    const currentPath = window.location.pathname;
+    document.querySelectorAll('.nav-item').forEach(link => {
+        const href = link.getAttribute('href');
+        if (href === currentPath || (currentPath === '/dashboard' && href === '/dashboard')) {
+            link.classList.add('active');
+        }
+    });
+}
 
-  save(key) { localStorage.setItem(key, JSON.stringify(this[key])); },
+function hideSidebarSection(keywords) {
+    document.querySelectorAll('.nav-section').forEach(section => {
+        const title = (section.querySelector('.nav-section-title')?.textContent || '').trim();
+        if (keywords.some(k => title.includes(k))) {
+            section.style.display = 'none';
+        }
+    });
+}
 
-  getAll(key) { return this[key] || []; },
-
-  getById(key, id) { return (this[key] || []).find(i => i.id === id); },
-
-  add(key, item) {
-    const list = this[key];
-    item.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    item.createdAt = new Date().toISOString();
-    list.push(item);
-    this.save(key);
-    return item;
-  },
-
-  update(key, id, data) {
-    const list = this[key];
-    const idx = list.findIndex(i => i.id === id);
-    if (idx === -1) return null;
-    list[idx] = { ...list[idx], ...data };
-    this.save(key);
-    return list[idx];
-  },
-
-  remove(key, id) {
-    const list = this[key];
-    const idx = list.findIndex(i => i.id === id);
-    if (idx === -1) return false;
-    list.splice(idx, 1);
-    this.save(key);
-    return true;
-  }
-};
-
+// 3. التنبيهات المنبثقة (Toast Notifications)
 function showToast(msg, type = 'success') {
-  const t = document.getElementById('toast') || (() => {
-    const el = document.createElement('div');
-    el.id = 'toast';
-    el.className = 'toast';
-    document.body.appendChild(el);
-    return el;
-  })();
-  t.className = `toast ${type}`;
-  t.innerHTML = `<i class="fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${msg}`;
-  t.classList.add('show');
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => t.classList.remove('show'), 2500);
+    let t = document.getElementById('toast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'toast';
+        t.className = 'toast';
+        document.body.appendChild(t);
+    }
+    t.className = `toast ${type}`;
+    const icon = type === 'success' ? 'fa-circle-check' : (type === 'error' ? 'fa-circle-exclamation' : 'fa-info-circle');
+    t.innerHTML = `<i class="fas ${icon}"></i> <span>${msg}</span>`;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 3200);
 }
 
-function openModal(id) { document.getElementById(id)?.classList.add('show'); }
-function closeModal(id) { document.getElementById(id)?.classList.remove('show'); }
-
-function closeModalOnOverlay(e) {
-  if (e.target.classList.contains('modal-overlay')) {
-    e.target.classList.remove('show');
-  }
+// 4. التحكم بالنوافذ المنبثقة (Modals)
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.classList.add('show');
+    }
 }
 
-document.addEventListener('click', function(e) {
-  if (e.target.classList.contains('modal-overlay')) {
-    e.target.classList.remove('show');
-  }
-});
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('show');
+    }
+}
 
 function toggleSidebar() {
-  document.getElementById('sidebar')?.classList.toggle('open');
-  document.getElementById('sidebarOverlay')?.classList.toggle('show');
+    document.getElementById('sidebar')?.classList.toggle('open');
+    document.getElementById('sidebarOverlay')?.classList.toggle('show');
 }
 
-function setActiveNav() {
-  const page = document.body.dataset.page;
-  document.querySelectorAll('.nav-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.page === page);
-  });
+// 5. تسجيل الخروج
+async function handleLogout() {
+    if (confirm('هل أنت متأكد من رغبتك في تسجيل الخروج؟')) {
+        await apiCall('/logout', 'POST').catch(() => {});
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+    }
 }
 
+// ضبط التاريخ الحالي في رأس الصفحة
 document.addEventListener('DOMContentLoaded', () => {
-  setActiveNav();
-  const dateEl = document.getElementById('currentDate');
-  if (dateEl) {
-    const now = new Date();
-    const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    dateEl.textContent = now.toLocaleDateString('ar-SA', opts);
-  }
-});
+    initAuthAndSidebar();
 
-document.addEventListener('DOMContentLoaded', () => {
-    setActiveNav();
     const dateEl = document.getElementById('currentDate');
     if (dateEl) {
         const now = new Date();
@@ -128,71 +243,11 @@ document.addEventListener('DOMContentLoaded', () => {
         dateEl.textContent = now.toLocaleDateString('ar-SA', opts);
     }
 
-    const userStr = localStorage.getItem('user');
-    const token = localStorage.getItem('auth_token');
-
-    // 1. حارس أساسي: إذا لم يكن مسجل دخول، طرده لصفحة تسجيل الدخول
-    if (!token || !userStr) {
-        window.location.href = '/login';
-        return;
-    }
-
-    const user = JSON.parse(userStr);
-    const role = user.role; // admin, doctor, lab, pharmacist
-    const currentPath = window.location.pathname;
-
-    // 2. حراسة الصلاحيات ومنع الوصول المباشر عبر الروابط (URL Guard)
-    if (role === 'doctor') {
-        // الطبيب مسموح له فقط بـ: لوحة التحكم، المرضى، والزيارات
-        if (currentPath.includes('/dashboard/analyses') ||
-            currentPath.includes('/dashboard/lab-results') ||
-            currentPath.includes('/dashboard/medicine-types') ||
-            currentPath.includes('/dashboard/users')) {
-            alert('عذراً، لا تمتلك صلاحية الدخول لهذه الصفحة');
-            window.location.href = '/dashboard/visits';
-            return;
+    // إغلاق المودال عند النقر خارج المحتوى
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal-overlay')) {
+            e.target.style.display = 'none';
+            e.target.classList.remove('show');
         }
-    } else if (role === 'lab') {
-        // فني المختبر مسموح له فقط بـ: التحاليل ونتائج التحاليل
-        if (currentPath.includes('/dashboard/visits') ||
-            currentPath.includes('/dashboard/persons') ||
-            currentPath.includes('/dashboard/medicine-types') ||
-            currentPath.includes('/dashboard/users') ||
-            currentPath.includes('/dashboard/doctors')) {
-            alert('عذراً، لا تمتلك صلاحية الدخول لهذه الصفحة');
-            window.location.href = '/dashboard/lab-results';
-            return;
-        }
-    } else if (role === 'pharmacist') {
-        // الصيدلي مسموح له فقط بـ: أنواع الأدوية
-        if (!currentPath.includes('/dashboard/medicine-types') && currentPath !== '/dashboard') {
-            alert('عذراً، لا تمتلك صلاحية الدخول لهذه الصفحة');
-            window.location.href = '/dashboard/medicine-types';
-            return;
-        }
-    }
-
-    // 3. تصفية القائمة الجانبية (Sidebar) بصرياً
-    if (role === 'doctor') {
-        document.querySelectorAll('.nav-section').forEach(section => {
-            const title = section.querySelector('.nav-section-title')?.textContent || '';
-            if (title.includes('المختبر') || title.includes('الثوابت') || title.includes('الطاقم')) {
-                section.style.display = 'none';
-            }
-        });
-    } else if (role === 'lab') {
-        document.querySelectorAll('.nav-section').forEach(section => {
-            const title = section.querySelector('.nav-section-title')?.textContent || '';
-            if (title.includes('الاستقبال') || title.includes('الطاقم') || title.includes('الثوابت')) {
-                section.style.display = 'none';
-            }
-        });
-    } else if (role === 'pharmacist') {
-        document.querySelectorAll('.nav-section').forEach(section => {
-            const title = section.querySelector('.nav-section-title')?.textContent || '';
-            if (title.includes('الاستقبال') || title.includes('الطاقم') || title.includes('المختبر')) {
-                section.style.display = 'none';
-            }
-        });
-    }
+    });
 });

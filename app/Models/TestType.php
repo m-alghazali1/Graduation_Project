@@ -8,15 +8,27 @@ use Illuminate\Database\Eloquent\Model;
 class TestType extends Model
 {
     use HasFactory;
+
     protected $fillable = [
-        'test_name',
+        'name',
+        'code',
+        'unit',
         'min_range',
-        'max_range'
+        'max_range',
+        'price',
+        'description',
+        'status',
     ];
 
-    // إذا حبيت مستقبلاً تجيب كل نتائج المختبر المرتبطة بهادا التحليل
+    protected $casts = [
+        'min_range' => 'float',
+        'max_range' => 'float',
+        'price' => 'float',
+    ];
+
+    // نتائج المختبر المرتبطة بهذا التحليل
     public function labResults()
     {
-        return $this->hasMany(LabResult::class);
+        return $this->hasMany(LabResult::class, 'test_type_id');
     }
 }

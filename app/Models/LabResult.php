@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class LabResult extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'result_value',
         'lab_notes',
@@ -16,15 +17,19 @@ class LabResult extends Model
         'test_type_id',
     ];
 
+    protected $casts = [
+        'result_value' => 'float',
+    ];
+
     // علاقة نتيجة المختبر بالزيارة
     public function visit()
     {
-        return $this->belongsTo(Visit::class);
+        return $this->belongsTo(Visit::class, 'visit_id');
     }
 
     // علاقة نتيجة المختبر بنوع التحليل
     public function testType()
     {
-        return $this->belongsTo(TestType::class); // تأكد إنك عامل موديل TestType
+        return $this->belongsTo(TestType::class, 'test_type_id');
     }
 }

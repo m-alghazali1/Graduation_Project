@@ -16,6 +16,9 @@ return new class extends Migration
 
             $table->string('dosage')->nullable();
             $table->integer('prescribed_quantity')->default(1);
+            $table->string('instructions')->nullable(); // تعليمات الاستخدام (مثل: حبة 3 مرات يوميا بعد الأكل)
+            $table->boolean('is_dispensed')->default(false); // حالة الصرف من الصيدلية
+            $table->dateTime('dispensed_at')->nullable(); // تاريخ ووقت الصرف
 
             $table->foreignId('visit_id')
                 ->constrained('visits')

@@ -13,11 +13,14 @@ return new class extends Migration
     {
         Schema::create('test_types', function (Blueprint $table) {
             $table->id();
-
-            $table->string('test_name');
+            $table->string('name');
+            $table->string('code')->nullable();
+            $table->string('unit')->nullable(); // e.g. mg/dL, %, g/L
             $table->decimal('min_range', 8, 2)->nullable();
             $table->decimal('max_range', 8, 2)->nullable();
-
+            $table->decimal('price', 8, 2)->default(0.00);
+            $table->text('description')->nullable();
+            $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
         });
     }

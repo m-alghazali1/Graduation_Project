@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('visits', function (Blueprint $table) {
+        Schema::create('visits', function (Blueprint $table) {
             $table->id();
 
             $table->dateTime('appointment_date');
@@ -20,7 +20,8 @@ return new class extends Migration
             $table->decimal('weight', 5, 2)->nullable();
             $table->decimal('temperature', 4, 1)->nullable();
 
-            $table->text('doctor_notes')->nullable();
+            $table->string('diagnosis')->nullable(); // التشخيص الطبي
+            $table->text('doctor_notes')->nullable(); // ملاحظات الطبيب والكشف الإكلينيكي
 
             $table->enum('status', [
                 'waiting',

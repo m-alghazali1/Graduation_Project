@@ -12,13 +12,25 @@ class CheckRole
      * Handle an incoming request.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  string  ...$roles
      */
-    public function public function handle($request, Closure $next, ...$roles)
+    public function handle(Request $request, Closure $next, ...$roles): Response
+    {
+        $user = $request->user();
 
-    if (!auth()->check() || !in_array(auth()->user()->role, $roles)) {
-        return response()->json(['message' => 'غيريح مصرح لك بالوصول لهذه الصفحة.'], 403);
+        if (!$user) {
+            return response()->json([
+                'message' => 'غير مصرح لك بالوصول. يرجى تسجيل الدخول أولاً.'
+            ], 401);
+        }
+
+        // إذا كان المستخدم يمتلك أحد الأدوار المسموح بها، اسمح بالمرور
+        if (in_array($user->role, $roles) || $user->role === 'admin') {
+            return $next($request);
+        }
+
+        return response()->json([
+            'message' => 'عذراً، لا تمتلك الصلاحيات الكافية للوصول إلى هذه الخدمة.'
+        ], 403);
     }
-
-    return $next($request);
 }
-

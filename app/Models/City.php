@@ -18,4 +18,9 @@ class City extends Model
     {
         return $this->belongsTo(Governorate::class);
     }
+
+    public function neighborhoods()
+    {
+        return $this->hasMany(Neighborhood::class);
+    }
 }

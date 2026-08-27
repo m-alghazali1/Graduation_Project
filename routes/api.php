@@ -108,14 +108,20 @@ Route::middleware('auth:sanctum')->group(function () {
     // الثوابت الجغرافية (المحافظات، المدن، الأحياء)
     // ==========================================
     Route::get('/governorates', [GovernorateController::class, 'index']);
+    Route::get('/governorates/{id}', [GovernorateController::class, 'show']);
     Route::post('/governorates', [GovernorateController::class, 'store'])->middleware('role:admin');
+    Route::put('/governorates/{id}', [GovernorateController::class, 'update'])->middleware('role:admin');
     Route::delete('/governorates/{id}', [GovernorateController::class, 'destroy'])->middleware('role:admin');
 
     Route::get('/cities', [CityController::class, 'index']);
+    Route::get('/cities/{id}', [CityController::class, 'show']);
     Route::post('/cities', [CityController::class, 'store'])->middleware('role:admin');
+    Route::put('/cities/{id}', [CityController::class, 'update'])->middleware('role:admin');
     Route::delete('/cities/{id}', [CityController::class, 'destroy'])->middleware('role:admin');
 
     Route::get('/neighborhoods', [NeighborhoodController::class, 'index']);
+    Route::get('/neighborhoods/{id}', [NeighborhoodController::class, 'show']);
     Route::post('/neighborhoods', [NeighborhoodController::class, 'store'])->middleware('role:admin');
+    Route::put('/neighborhoods/{id}', [NeighborhoodController::class, 'update'])->middleware('role:admin');
     Route::delete('/neighborhoods/{id}', [NeighborhoodController::class, 'destroy'])->middleware('role:admin');
 });

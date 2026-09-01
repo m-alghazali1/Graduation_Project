@@ -92,13 +92,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==========================================
     // إدارة الطاقم والمستخدمين والأطباء (Admin فقط)
     // ==========================================
+    
+    Route::get('/users', [UserController::class, 'index']);
+    Route::get('/doctors', [DoctorController::class, 'index']);
+    
     Route::middleware('role:admin')->group(function () {
-        Route::get('/users', [UserController::class, 'index']);
         Route::post('/users', [UserController::class, 'store']);
         Route::put('/users/{id}', [UserController::class, 'update']);
         Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
-        Route::get('/doctors', [DoctorController::class, 'index']);
         Route::post('/doctors', [DoctorController::class, 'store']);
         Route::put('/doctors/{id}', [DoctorController::class, 'update']);
         Route::delete('/doctors/{id}', [DoctorController::class, 'destroy']);
